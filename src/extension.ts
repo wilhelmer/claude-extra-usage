@@ -28,7 +28,7 @@ export function activate(context: vscode.ExtensionContext): void {
 function scheduleRefresh(): void {
     clearInterval(refreshTimer);
     const intervalMs = vscode.workspace.getConfiguration('claudeExtraUsage')
-        .get<number>('refreshInterval', 5) * 60 * 1000;
+        .get<number>('refreshInterval', 10) * 60 * 1000;
     refreshTimer = setInterval(refresh, intervalMs);
 }
 
