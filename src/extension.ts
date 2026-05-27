@@ -28,7 +28,7 @@ export function activate(context: vscode.ExtensionContext): void {
 function scheduleRefresh(): void {
     clearInterval(refreshTimer);
     const intervalMs = vscode.workspace.getConfiguration('claudeExtraUsage')
-        .get<number>('refreshIntervalMinutes', 5) * 60 * 1000;
+        .get<number>('refreshInterval', 5) * 60 * 1000;
     refreshTimer = setInterval(refresh, intervalMs);
 }
 
@@ -44,7 +44,7 @@ function refresh(): void {
         return;
     }
 
-    statusBarItem.text = '$(sparkle~spin)';
+    statusBarItem.text = '$(sparkle~spin) Refreshing ...';
     statusBarItem.show();
 
     fetchUsage(orgId, sessionKey).then(({ spent, limit, utilization }) => {
