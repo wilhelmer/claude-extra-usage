@@ -2,7 +2,7 @@
 
 A minimal VS Code extension that shows your Claude extra credit usage in the status bar.
 
-![Status bar display with tooltip](https://raw.githubusercontent.com/wilhelmer/claude-extra-usage/main/status-bar.png)
+![Status bar display with tooltip](https://github.com/wilhelmer/claude-extra-usage/blob/main/status-bar.png?raw=true)
 
 The extension calculates the percentage from your monthly credit limit and the amount spent so far in the billing period.
 
