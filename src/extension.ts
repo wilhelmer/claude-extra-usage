@@ -38,8 +38,8 @@ function refresh(): void {
     const sessionKey = config.get<string>('sessionKey', '').trim();
 
     if (!orgId || !sessionKey) {
-        statusBarItem.text = '$(sparkle) not configured';
-        statusBarItem.tooltip = 'Set claudeExtraUsage.organizationId and claudeExtraUsage.sessionKey in VS Code settings';
+        statusBarItem.text = '$(sparkle) Not configured';
+        statusBarItem.tooltip = 'Configure organization ID and session key to use the Claude Extra Usage extension.';
         statusBarItem.show();
         return;
     }
@@ -52,7 +52,7 @@ function refresh(): void {
         statusBarItem.text = `$(sparkle) ${pct}% used`;
         statusBarItem.tooltip = `$${(spent / 100).toFixed(2)} of $${(limit / 100).toFixed(2)} spent`;
     }).catch(err => {
-        statusBarItem.text = '$(sparkle) error';
+        statusBarItem.text = '$(warning) Error';
         statusBarItem.tooltip = `Failed to fetch usage: ${err instanceof Error ? err.message : String(err)}`;
     });
 }

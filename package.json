@@ -20,7 +20,7 @@
         "claudeExtraUsage.organizationId": {
           "type": "string",
           "default": "",
-          "description": "Your Claude organization ID. To view it, open https://claude.ai/settings/account"
+          "markdownDescription": "Your Claude organization ID. To view it, open https://claude.ai/settings/account."
         },
         "claudeExtraUsage.sessionKey": {
           "type": "string",
