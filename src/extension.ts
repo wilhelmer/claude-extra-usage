@@ -1,23 +1,8 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
-
-const CACHE_FILE = path.join(os.homedir(), '.claude', 'claude-usage-bar-cache.json');
-
-interface ExtraUsage {
-    isEnabled: boolean;
-    monthlyLimit: number;
-    usedCredits: number;
-    utilization: number;
-}
-
-interface UsageCache {
-    usage: { extraUsage: ExtraUsage | null } | null;
-    error: string | null;
-}
+import * as https from 'https';
 
 let statusBarItem: vscode.StatusBarItem;
+let refreshTimer: ReturnType<typeof setInterval> | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
     statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
@@ -27,40 +12,105 @@ export function activate(context: vscode.ExtensionContext): void {
     const refreshCmd = vscode.commands.registerCommand('claudeExtraUsage.refresh', refresh);
     context.subscriptions.push(refreshCmd);
 
-    fs.watchFile(CACHE_FILE, { interval: 10_000 }, refresh);
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeConfiguration(e => {
+            if (e.affectsConfiguration('claudeExtraUsage')) {
+                scheduleRefresh();
+                refresh();
+            }
+        })
+    );
 
-    context.subscriptions.push({ dispose: () => fs.unwatchFile(CACHE_FILE) });
-
+    scheduleRefresh();
     refresh();
 }
 
+function scheduleRefresh(): void {
+    clearInterval(refreshTimer);
+    const intervalMs = vscode.workspace.getConfiguration('claudeExtraUsage')
+        .get<number>('refreshIntervalMinutes', 5) * 60 * 1000;
+    refreshTimer = setInterval(refresh, intervalMs);
+}
+
 function refresh(): void {
-    statusBarItem.text = '$(sync~spin) Refreshing ...';
+    const config = vscode.workspace.getConfiguration('claudeExtraUsage');
+    const orgId = config.get<string>('organizationId', '').trim();
+    const sessionKey = config.get<string>('sessionKey', '').trim();
+
+    if (!orgId || !sessionKey) {
+        statusBarItem.text = '$(sparkle) not configured';
+        statusBarItem.tooltip = 'Set claudeExtraUsage.organizationId and claudeExtraUsage.sessionKey in VS Code settings';
+        statusBarItem.show();
+        return;
+    }
+
+    statusBarItem.text = '$(sparkle~spin)';
     statusBarItem.show();
 
-    // Defer the file read so the spinner frame has time to render
-    setTimeout(() => {
-        try {
-            const cache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8')) as UsageCache;
-            const extra = cache.usage?.extraUsage;
+    fetchUsage(orgId, sessionKey).then(({ spent, limit, utilization }) => {
+        const pct = Math.round(utilization);
+        statusBarItem.text = `$(sparkle) ${pct}% used`;
+        statusBarItem.tooltip = `$${(spent / 100).toFixed(2)} of $${(limit / 100).toFixed(2)} spent`;
+    }).catch(err => {
+        statusBarItem.text = '$(sparkle) error';
+        statusBarItem.tooltip = `Failed to fetch usage: ${err instanceof Error ? err.message : String(err)}`;
+    });
+}
 
-            if (!extra?.isEnabled) {
-                statusBarItem.hide();
-                return;
+interface UsageResponse {
+    extra_usage: {
+        is_enabled: boolean;
+        monthly_limit: number;
+        used_credits: number;
+        utilization: number;
+    } | null;
+}
+
+function fetchUsage(orgId: string, sessionKey: string): Promise<{ spent: number; limit: number; utilization: number }> {
+    return new Promise((resolve, reject) => {
+        const req = https.request(
+            `https://claude.ai/api/organizations/${orgId}/usage`,
+            {
+                method: 'GET',
+                headers: {
+                    'cookie': `sessionKey=${sessionKey}`,
+                    'accept': 'application/json, text/plain, */*',
+                    'origin': 'https://claude.ai',
+                    'referer': 'https://claude.ai/',
+                    'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/125.0.0.0 Safari/537.36',
+                },
+            },
+            res => {
+                let body = '';
+                res.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+                res.on('end', () => {
+                    if (res.statusCode !== 200) {
+                        reject(new Error(`HTTP ${res.statusCode}`));
+                        return;
+                    }
+                    try {
+                        const json = JSON.parse(body) as UsageResponse;
+                        const eu = json.extra_usage;
+                        if (!eu?.is_enabled) {
+                            reject(new Error('extra usage not enabled on this account'));
+                            return;
+                        }
+                        resolve({
+                            spent: eu.used_credits,
+                            limit: eu.monthly_limit,
+                            utilization: eu.utilization,
+                        });
+                    } catch (e) {
+                        reject(e);
+                    }
+                });
             }
-
-            const spent = extra.usedCredits / 100;
-            const limit = extra.monthlyLimit / 100;
-            const pct = Math.round(extra.utilization);
-
-            statusBarItem.text = `$(sparkle) ${pct}% used`;
-            statusBarItem.tooltip = `$${spent.toFixed(2)} of $${limit.toFixed(2)} spent`;
-        } catch {
-            statusBarItem.hide();
-        }
-    }, 300);
+        );
+        req.on('error', reject);
+        req.end();
+    });
 }
 
 export function deactivate(): void {
-    fs.unwatchFile(CACHE_FILE);
+    clearInterval(refreshTimer);
 }

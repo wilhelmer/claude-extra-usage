@@ -8,18 +8,23 @@ A minimal VS Code extension that shows your Claude extra credit usage in the sta
 | ---------- | ------------------------ |
 | `43% used` | `$12.94 of $30.00 spent` |
 
-The percentage is calculated from your monthly credit limit and the amount spent so far this billing period.
+The extension calculates the percentage from your monthly credit limit and the amount spent so far in the billing period.
 
-## Requirements
+## Setup
 
-[Claude Code](https://claude.ai/code) must be installed and have run at least once. The extension reads usage data that Claude Code already fetches and caches locally at `~/.claude/claude-usage-bar-cache.json` — no API keys or network calls required.
+Configure two settings (VS Code Settings → search `Claude Extra Usage`):
 
-The status bar item is only shown when extra credit usage (`extraUsage`) is enabled on your account. It hides itself silently otherwise.
+| Setting                           | Description                                                                             |
+| --------------------------------- | --------------------------------------------------------------------------------------- |
+| `claudeExtraUsage.organizationId` | Your org ID — visible in the URL at `claude.ai/settings`                                |
+| `claudeExtraUsage.sessionKey`     | Your `sessionKey` cookie — DevTools on claude.ai → Application → Cookies → `sessionKey` |
+
+The status bar item appears only when extra credit usage is active on your account. It does not appear otherwise.
 
 ## Usage
 
-- The status bar updates automatically whenever Claude Code refreshes its own cache (checked every 10 seconds).
-- Click the status bar item or run **Claude Extra Usage: Refresh Now** from the Command Palette to force an immediate re-read.
+- The extension fetches usage from `https://claude.ai/api/organizations/<id>/usage` every five minutes (configurable via `claudeExtraUsage.refreshIntervalMinutes`).
+- Click the status bar item or run **Claude Extra Usage: Refresh Now** from the command menu to force an immediate refresh.
 
 ## License
 
