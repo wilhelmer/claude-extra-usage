@@ -1,7 +1,10 @@
 {
   "name": "claude-extra-usage",
   "displayName": "Claude Extra Usage",
-  "description": "Displays Claude pay-as-you-go credit usage as a percentage in the VS Code status bar",
+  "repository": "https://github.com/wilhelmer/claude-extra-usage",
+  "description": "Displays Claude extra credit usage as a percentage in the VS Code status bar.",
+  "author": "Lars Wilhelmer",
+  "publisher": "LWilhelmer",
   "version": "0.0.1",
   "icon": "icon.png",
   "engines": {
@@ -13,8 +16,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "claudeUsage.refresh",
-        "title": "Claude Usage: Refresh Now"
+        "command": "claudeExtraUsage.refresh",
+        "title": "Claude Extra Usage: Refresh Now"
       }
     ]
   },
