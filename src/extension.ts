@@ -18,17 +18,16 @@ interface UsageCache {
 }
 
 let statusBarItem: vscode.StatusBarItem;
-let fileWatcher: fs.StatWatcher | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
     statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-    statusBarItem.command = 'claudeUsage.refresh';
+    statusBarItem.command = 'claudeExtraUsage.refresh';
     context.subscriptions.push(statusBarItem);
 
-    const refreshCmd = vscode.commands.registerCommand('claudeUsage.refresh', refresh);
+    const refreshCmd = vscode.commands.registerCommand('claudeExtraUsage.refresh', refresh);
     context.subscriptions.push(refreshCmd);
 
-    fileWatcher = fs.watchFile(CACHE_FILE, { interval: 10_000 }, refresh);
+    fs.watchFile(CACHE_FILE, { interval: 10_000 }, refresh);
 
     context.subscriptions.push({ dispose: () => fs.unwatchFile(CACHE_FILE) });
 
@@ -36,25 +35,30 @@ export function activate(context: vscode.ExtensionContext): void {
 }
 
 function refresh(): void {
-    try {
-        const cache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8')) as UsageCache;
-        const extra = cache.usage?.extraUsage;
+    statusBarItem.text = '$(sync~spin) Refreshing ...';
+    statusBarItem.show();
 
-        if (!extra?.isEnabled) {
+    // Defer the file read so the spinner frame has time to render
+    setTimeout(() => {
+        try {
+            const cache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8')) as UsageCache;
+            const extra = cache.usage?.extraUsage;
+
+            if (!extra?.isEnabled) {
+                statusBarItem.hide();
+                return;
+            }
+
+            const spent = extra.usedCredits / 100;
+            const limit = extra.monthlyLimit / 100;
+            const pct = Math.round(extra.utilization);
+
+            statusBarItem.text = `$(sparkle) ${pct}% used`;
+            statusBarItem.tooltip = `$${spent.toFixed(2)} of $${limit.toFixed(2)} spent`;
+        } catch {
             statusBarItem.hide();
-            return;
         }
-
-        const spent = extra.usedCredits / 100;
-        const limit = extra.monthlyLimit / 100;
-        const pct = Math.round(extra.utilization);
-
-        statusBarItem.text = `Claude: ${pct}% used`;
-        statusBarItem.tooltip = `$${spent.toFixed(2)} of $${limit.toFixed(2)} spent`;
-        statusBarItem.show();
-    } catch {
-        statusBarItem.hide();
-    }
+    }, 300);
 }
 
 export function deactivate(): void {
