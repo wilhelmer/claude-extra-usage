@@ -5,7 +5,7 @@
   "description": "Displays Claude extra credit usage as a percentage in the VS Code status bar.",
   "author": "Lars Wilhelmer",
   "publisher": "LWilhelmer",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "icon": "icon.png",
   "engines": {
     "vscode": "^1.85.0"
@@ -17,16 +17,6 @@
     "configuration": {
       "title": "Claude Extra Usage",
       "properties": {
-        "claudeExtraUsage.organizationId": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Your Claude organization ID. To view it, open https://claude.ai/settings/account."
-        },
-        "claudeExtraUsage.sessionKey": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Your Claude session key. To retrieve it, open https://claude.ai, open dev tools (F12), and go to Application > Storage > Cookies > `sessionKey`."
-        },
         "claudeExtraUsage.refreshInterval": {
           "type": "number",
           "default": 10,
@@ -39,6 +29,10 @@
       {
         "command": "claudeExtraUsage.refresh",
         "title": "Claude Extra Usage: Refresh Now"
+      },
+      {
+        "command": "claudeExtraUsage.configure",
+        "title": "Claude Extra Usage: Configure"
       }
     ]
   },
